@@ -50,16 +50,16 @@ The rest of this tutorial will be performed in a terminal.
 1. Clone this repository locally and make it the current working folder.
 
    ```console
-   $ git clone https://github.com/shadanan/gcp-scc-finding-notification-slack.git
-   $ cd gcp-scc-finding-notification-slack
+   git clone https://github.com/shadanan/gcp-scc-finding-notification-slack.git
+   cd gcp-scc-finding-notification-slack
    ```
 
 1. Set the org and project ID. The selected project is where the cloud function will execute form.
 
    ```console
-   $ export ORG_ID=<your org id>
-   $ export PROJECT_ID=<your project id>
-   $ gcloud config set project $PROJECT_ID
+   export ORG_ID=<your org id>
+   export PROJECT_ID=<your project id>
+   gcloud config set project $PROJECT_ID
    ```
 
 ### Configure the Pub/Sub Topic and Subscription
@@ -69,17 +69,17 @@ Cloud Pub/Sub is a real-time messaging service that enables messages to be sent 
 1. Create the topic where all the findings will be published.
 
    ```console
-   $ export TOPIC=scc-critical-and-high-severity-findings-topic
-   $ gcloud pubsub topics create $TOPIC
+   export TOPIC=scc-critical-and-high-severity-findings-topic
+   gcloud pubsub topics create $TOPIC
    ```
 
 1. Configure SCC to publish notifications to our topic.
 
    ```console
-   $ gcloud scc notifications create scc-critical-and-high-severity-findings-notify \
-       --organization $ORG_ID \
-       --pubsub-topic projects/$PROJECT_ID/topics/$TOPIC \
-       --filter '(severity="HIGH" OR severity="CRITICAL") AND state="ACTIVE"'
+   gcloud scc notifications create scc-critical-and-high-severity-findings-notify \
+     --organization $ORG_ID \
+     --pubsub-topic projects/$PROJECT_ID/topics/$TOPIC \
+     --filter '(severity="HIGH" OR severity="CRITICAL") AND state="ACTIVE"'
    ```
 
 ### Create a Service Account for our cloud function
@@ -89,18 +89,18 @@ In this section, we'll provision a service account that will be used by our clou
 1. Create the service account.
 
    ```console
-   $ export SERVICE_ACCOUNT=slack-cloud-function-sa
-   $ gcloud iam service-accounts create $SERVICE_ACCOUNT \
-       --display-name "SCC Finding Notifier Slack cloud function" \
-       --project $PROJECT_ID
+   export SERVICE_ACCOUNT=slack-cloud-function-sa
+   gcloud iam service-accounts create $SERVICE_ACCOUNT \
+     --display-name "SCC Finding Notifier Slack cloud function" \
+     --project $PROJECT_ID
    ```
 
 1. Grant the service account the `securitycenter.admin` role for the organization.
 
    ```console
-   $ gcloud organizations add-iam-policy-binding $ORG_ID \
-       --member="serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com" \
-       --role='roles/securitycenter.admin'
+   gcloud organizations add-iam-policy-binding $ORG_ID \
+     --member="serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com" \
+     --role='roles/securitycenter.admin'
    ```
 
 ### Save Slack API Token in Secrets Manager
@@ -108,25 +108,25 @@ In this section, we'll provision a service account that will be used by our clou
 1. Export the Slack API Token into an environment variable.
 
    ```console
-   $ export SLACK_API_TOKEN=<your-app-secret>
+   export SLACK_API_TOKEN=<your-app-secret>
    ```
 
 1. Create the token.
 
    ```console
-   $ gcloud secrets create slack-api-token
+   gcloud secrets create slack-api-token
    ```
 
 1. Set the value of the token.
 
    ```console
-   $ echo -n $SLACK_API_TOKEN | gcloud secrets versions add slack-api-token --data-file=-
+   echo -n $SLACK_API_TOKEN | gcloud secrets versions add slack-api-token --data-file=-
    ```
 
 1. Grant the service account access to the token.
 
    ```console
-   $ gcloud secrets add-iam-policy-binding slack-api-token \
+   gcloud secrets add-iam-policy-binding slack-api-token \
      --member="serviceAccount:$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com" \
      --role='roles/secretmanager.secretAccessor'
    ```
@@ -136,13 +136,13 @@ In this section, we'll provision a service account that will be used by our clou
 1. Deploy the `slack-high-and-critical-findings` cloud function. If you have not enabled Cloud Build API, then this command may fail. Follow the link in the error message to enable it and then try again.
 
    ```console
-   $ gcloud functions deploy slack-high-and-critical-findings \
-       --entry-point=process_notification \
-       --runtime=python39 \
-       --service-account="$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com" \
-       --set-env-vars="PROJECT_ID=$PROJECT_ID" \
-       --source=cf \
-       --trigger-topic=scc-critical-and-high-severity-findings-topic
+   gcloud functions deploy slack-high-and-critical-findings \
+     --entry-point=process_notification \
+     --runtime=python39 \
+     --service-account="$SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com" \
+     --set-env-vars="PROJECT_ID=$PROJECT_ID" \
+     --source=cf \
+     --trigger-topic=scc-critical-and-high-severity-findings-topic
    ```
 
 ### Test It Out
